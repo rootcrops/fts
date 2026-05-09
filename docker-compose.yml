@@ -1,0 +1,47 @@
+services:
+  db:
+    image: docker.io/library/postgres:16
+    environment:
+      POSTGRES_DB: fts
+      POSTGRES_USER: fts
+      POSTGRES_PASSWORD: fts
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fts -d fts"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    command: bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://fts:fts@db:5432/fts
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      AI_MODEL: ${AI_MODEL:-anthropic/claude-3.5-sonnet}
+    volumes:
+      - ./backend:/app
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
