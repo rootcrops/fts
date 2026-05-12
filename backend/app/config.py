@@ -14,5 +14,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    oidc_issuer: str
+    oidc_audience: str
+    oidc_jwks_url: str
+
 
 settings = Settings()

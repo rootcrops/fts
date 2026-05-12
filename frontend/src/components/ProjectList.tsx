@@ -1,12 +1,16 @@
 import { useState } from "react";
 
 import { useCreateProject, useProjects } from "../hooks/useEntries";
+import { useMe } from "../hooks/useMe";
 
 export default function ProjectList() {
   const { data: projects, isLoading } = useProjects();
+  const { data: me } = useMe();
   const createProject = useCreateProject();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#22c55e");
+
+  const isAdmin = me?.role === "admin";
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +40,19 @@ export default function ProjectList() {
           ))}
         </ul>
       )}
-      <form onSubmit={submit} style={{ display: "flex", gap: 8 }}>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New project name"
-        />
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        <button type="submit" disabled={createProject.isPending}>
-          Add
-        </button>
-      </form>
+      {isAdmin ? (
+        <form onSubmit={submit} style={{ display: "flex", gap: 8 }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="New project name"
+          />
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+          <button type="submit" disabled={createProject.isPending}>
+            Add
+          </button>
+        </form>
+      ) : null}
     </section>
   );
 }

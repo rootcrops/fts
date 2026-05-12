@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import get_ai_service
+from ..models import User
 from ..schemas.ai import (
     PolishRequest,
     PolishResponse,
     SuggestPaddingRequest,
     SuggestPaddingResponse,
 )
+from ..security import get_current_user
 from ..services.ai_service import AIService, AIServiceError
 
 router = APIRouter()
@@ -16,6 +18,7 @@ router = APIRouter()
 async def polish(
     payload: PolishRequest,
     ai: AIService = Depends(get_ai_service),
+    _: User = Depends(get_current_user),
 ) -> PolishResponse:
     try:
         polished = await ai.polish_text(payload.raw_text)
@@ -32,6 +35,7 @@ async def polish(
 async def suggest_padding(
     payload: SuggestPaddingRequest,
     ai: AIService = Depends(get_ai_service),
+    _: User = Depends(get_current_user),
 ) -> SuggestPaddingResponse:
     try:
         result = await ai.suggest_padding(

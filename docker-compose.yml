@@ -15,6 +15,65 @@ services:
       timeout: 5s
       retries: 10
 
+  authentik-postgres:
+    image: docker.io/library/postgres:16
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: authentik
+    volumes:
+      - authentik_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik -d authentik"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  authentik-redis:
+    image: docker.io/library/redis:7-alpine
+    command: --save 60 1 --loglevel warning
+    volumes:
+      - authentik_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2024.10
+    command: server
+    environment: &authentik_env
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-akadmin}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-akadmin@local}
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+    ports:
+      - "127.0.0.1:9000:9000"
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2024.10
+    command: worker
+    environment: *authentik_env
+    user: root
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+
   backend:
     build: ./backend
     command: bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
@@ -22,6 +81,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://fts:fts@db:5432/fts
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       AI_MODEL: ${AI_MODEL:-anthropic/claude-3.5-sonnet}
+      OIDC_ISSUER: ${OIDC_ISSUER:-http://localhost:9000/application/o/fts/}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-fts-frontend}
+      OIDC_JWKS_URL: ${OIDC_JWKS_URL:-http://authentik-server:9000/application/o/fts/jwks/}
     volumes:
       - ./backend:/app
     ports:
@@ -35,6 +97,9 @@ services:
     command: npm run dev -- --host 0.0.0.0
     environment:
       VITE_API_PROXY_TARGET: http://backend:8000
+      VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-http://localhost:9000/application/o/fts/}
+      VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-fts-frontend}
+      VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI:-http://localhost:5173/auth/callback}
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -45,3 +110,5 @@ services:
 
 volumes:
   postgres_data:
+  authentik_pg_data:
+  authentik_redis_data:

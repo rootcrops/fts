@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date as date_type
 from decimal import Decimal
 
 from sqlalchemy import Date, ForeignKey, Numeric, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -14,6 +16,12 @@ class TimeEntry(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     actual_hours: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     date: Mapped[date_type] = mapped_column(Date, nullable=False)
     notes_raw: Mapped[str | None] = mapped_column(Text, nullable=True)

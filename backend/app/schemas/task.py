@@ -1,3 +1,4 @@
+import uuid
 from datetime import date as date_type
 from typing import Any, Literal
 
@@ -35,3 +36,4 @@ class TaskUpdate(CamelModel):
 
 class TaskRead(TaskBase):
     id: int
+    user_id: uuid.UUID

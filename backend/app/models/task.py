@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date as date_type
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -17,6 +18,12 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     description_raw: Mapped[str] = mapped_column(Text, nullable=False)
     description_polished: Mapped[str | None] = mapped_column(Text, nullable=True)

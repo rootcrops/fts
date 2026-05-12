@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import ai, projects, tasks
+from .routers import ai, projects, tasks, users
 
 app = FastAPI(title="FTS API", version="0.1.0")
 
@@ -22,3 +22,4 @@ async def health() -> dict[str, str]:
 app.include_router(projects.router, prefix="/projects", tags=["projects"])
 app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
+app.include_router(users.router, prefix="/users", tags=["users"])
