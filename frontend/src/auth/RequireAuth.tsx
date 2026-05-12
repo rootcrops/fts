@@ -10,6 +10,12 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     setTokenProvider(() => auth.user?.access_token ?? null);
   }, [auth.user]);
 
+  useEffect(() => {
+    if (!auth.isLoading && !auth.isAuthenticated && !auth.error) {
+      void auth.signinRedirect();
+    }
+  }, [auth.isLoading, auth.isAuthenticated, auth.error, auth]);
+
   if (auth.isLoading) {
     return <p>Loading auth…</p>;
   }
@@ -17,7 +23,6 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     return <p>Auth error: {auth.error.message}</p>;
   }
   if (!auth.isAuthenticated) {
-    void auth.signinRedirect();
     return <p>Redirecting to sign-in…</p>;
   }
   return <>{children}</>;
