@@ -1,46 +1,22 @@
-import { useAuth } from "react-oidc-context";
-import { Link, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import RequireAuth from "./auth/RequireAuth";
 import Callback from "./auth/Callback";
+import RequireAuth from "./auth/RequireAuth";
+import Shell from "./components/layout/Shell";
 import { useMe } from "./hooks/useMe";
 import Dashboard from "./pages/Dashboard";
-import NewEntry from "./pages/NewEntry";
+import ProjectsList from "./pages/ProjectsList";
 import Reports from "./pages/Reports";
+import TaskDetail from "./pages/TaskDetail";
+import TaskNew from "./pages/TaskNew";
+import TasksList from "./pages/TasksList";
+import UsersList from "./pages/UsersList";
 
-function HeaderBar() {
-  const auth = useAuth();
-  const { data: me } = useMe();
-  return (
-    <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
-      {me ? (
-        <span style={{ fontSize: 13, opacity: 0.8 }}>
-          {me.email} <em>({me.role})</em>
-        </span>
-      ) : null}
-      <button type="button" onClick={() => void auth.signoutRedirect()}>
-        Logout
-      </button>
-    </div>
-  );
-}
-
-function Shell() {
-  return (
-    <div style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
-      <nav style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
-        <Link to="/">Dashboard</Link>
-        <Link to="/new">New entry</Link>
-        <Link to="/reports">Reports</Link>
-        <HeaderBar />
-      </nav>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/new" element={<NewEntry />} />
-        <Route path="/reports" element={<Reports />} />
-      </Routes>
-    </div>
-  );
+function AdminRoute({ children }: { children: JSX.Element }) {
+  const { data: me, isLoading } = useMe();
+  if (isLoading) return null;
+  if (me?.role !== "admin") return <Navigate to="/" replace />;
+  return children;
 }
 
 export default function App() {
@@ -48,13 +24,28 @@ export default function App() {
     <Routes>
       <Route path="/auth/callback" element={<Callback />} />
       <Route
-        path="*"
         element={
           <RequireAuth>
             <Shell />
           </RequireAuth>
         }
-      />
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/tasks" element={<TasksList />} />
+        <Route path="/tasks/new" element={<TaskNew />} />
+        <Route path="/tasks/:id" element={<TaskDetail />} />
+        <Route path="/projects" element={<ProjectsList />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route
+          path="/users"
+          element={
+            <AdminRoute>
+              <UsersList />
+            </AdminRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
     </Routes>
   );
 }

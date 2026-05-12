@@ -6,6 +6,9 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { oidcConfig } from "./auth/oidcConfig";
+import "./styles/tokens.css";
+import "./styles/global.css";
+import "./styles/components.css";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 5_000 } },

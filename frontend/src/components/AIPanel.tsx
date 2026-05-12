@@ -1,11 +1,15 @@
+import { useState } from "react";
+
 import { usePolish, useSuggestPadding } from "../hooks/useAI";
+import type { PaddingSuggestion } from "../api/types";
 
 interface Props {
   rawText: string;
   actualHours: number;
   reportedHours: number;
   taskDescription: string;
-  onUsePolished: (text: string) => void;
+  onAcceptPolished: (text: string) => void;
+  onApplyPadding: (suggestion: PaddingSuggestion) => void;
 }
 
 export default function AIPanel({
@@ -13,65 +17,114 @@ export default function AIPanel({
   actualHours,
   reportedHours,
   taskDescription,
-  onUsePolished,
+  onAcceptPolished,
+  onApplyPadding,
 }: Props) {
   const polish = usePolish();
   const padding = useSuggestPadding();
+  const [showDiff, setShowDiff] = useState(false);
 
   return (
-    <fieldset style={{ display: "grid", gap: 8, padding: 12, border: "1px solid #ddd" }}>
-      <legend>AI assist</legend>
+    <div className="ai-panel">
+      <div className="ai-panel__title">AI assist</div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="ai-panel__actions">
         <button
           type="button"
+          className="btn btn--sm"
           disabled={!rawText.trim() || polish.isPending}
-          onClick={() => polish.mutate(rawText)}
+          onClick={() => {
+            setShowDiff(true);
+            polish.mutate(rawText);
+          }}
         >
-          {polish.isPending ? "Polishing…" : "Polish"}
+          {polish.isPending ? "Polishing…" : "Polish description"}
         </button>
-        {polish.data && (
-          <button type="button" onClick={() => onUsePolished(polish.data.polished)}>
-            Use polished
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn btn--sm"
+          disabled={!taskDescription.trim() || padding.isPending}
+          onClick={() =>
+            padding.mutate({
+              actualHours,
+              targetHours: reportedHours,
+              taskDescription,
+            })
+          }
+        >
+          {padding.isPending ? "Suggesting…" : "Suggest padding"}
+        </button>
       </div>
-      {polish.error && <p style={{ color: "crimson" }}>{String(polish.error)}</p>}
-      {polish.data && (
-        <pre style={{ whiteSpace: "pre-wrap", background: "#f6f6f6", padding: 8 }}>
-          {polish.data.polished}
-        </pre>
-      )}
 
-      <button
-        type="button"
-        disabled={!taskDescription.trim() || padding.isPending}
-        onClick={() =>
-          padding.mutate({
-            actualHours,
-            targetHours: reportedHours,
-            taskDescription,
-          })
-        }
-      >
-        {padding.isPending ? "Suggesting…" : "Suggest padding"}
-      </button>
-      {padding.error && <p style={{ color: "crimson" }}>{String(padding.error)}</p>}
-      {padding.data && (
-        <div style={{ background: "#f6f6f6", padding: 8 }}>
-          <p>
-            <strong>Suggested hours:</strong> {padding.data.suggestedHours}
-          </p>
-          <p>
-            <strong>Rationale:</strong> {padding.data.rationale}
-          </p>
-          <ul>
-            {padding.data.addedActivities.map((a, i) => (
-              <li key={i}>{a}</li>
-            ))}
-          </ul>
+      {polish.error ? (
+        <p className="ai-panel__error">Polish failed: {String(polish.error)}</p>
+      ) : null}
+      {polish.data && showDiff ? (
+        <div className="vstack" style={{ marginBottom: "var(--space-2)" }}>
+          <div className="ai-panel__diff">
+            <div>
+              <div className="ai-panel__diff-label">Raw</div>
+              {rawText || <span className="muted">(empty)</span>}
+            </div>
+            <div>
+              <div className="ai-panel__diff-label">Polished</div>
+              {polish.data.polished}
+            </div>
+          </div>
+          <div className="hstack">
+            <button
+              type="button"
+              className="btn btn--sm btn--primary"
+              onClick={() => {
+                onAcceptPolished(polish.data!.polished);
+              }}
+            >
+              Accept polished
+            </button>
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost"
+              onClick={() => setShowDiff(false)}
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
-      )}
-    </fieldset>
+      ) : null}
+
+      {padding.error ? (
+        <p className="ai-panel__error">Padding failed: {String(padding.error)}</p>
+      ) : null}
+      {padding.data ? (
+        <div className="ai-panel__result vstack">
+          <div>
+            <strong>Suggested hours:</strong>{" "}
+            <span className="mono">{padding.data.suggestedHours.toFixed(2)}</span>
+          </div>
+          <div>
+            <strong>Rationale.</strong> <span className="muted">{padding.data.rationale}</span>
+          </div>
+          {padding.data.addedActivities.length > 0 ? (
+            <div>
+              <strong>Activities to add:</strong>
+              <ul style={{ margin: "4px 0 0 18px" }}>
+                {padding.data.addedActivities.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div className="hstack">
+            <button
+              type="button"
+              className="btn btn--sm btn--primary"
+              onClick={() => onApplyPadding(padding.data!)}
+            >
+              Apply padding
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

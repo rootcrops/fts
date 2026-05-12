@@ -1,12 +1,9 @@
 import { api } from "./client";
+import type { User } from "./types";
 
-export interface Me {
-  id: string;
-  sub: string;
-  email: string;
-  name: string;
-  role: "admin" | "manager" | "user";
-  createdAt: string;
-}
+export const fetchMe = () => api<User>("/users/me");
 
-export const fetchMe = () => api<Me>("/users/me");
+export const listUsers = () => api<User[]>("/users");
+
+// Backwards-compatible alias used by hooks/useMe.ts
+export type Me = User;

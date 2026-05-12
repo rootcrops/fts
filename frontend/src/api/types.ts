@@ -11,6 +11,12 @@ export interface ProjectCreate {
   client?: string | null;
 }
 
+export interface ProjectUpdate {
+  name?: string;
+  color?: string;
+  client?: string | null;
+}
+
 export type TaskStatus = "draft" | "submitted";
 
 export interface PaddingSuggestion {
@@ -22,6 +28,7 @@ export interface PaddingSuggestion {
 export interface Task {
   id: number;
   projectId: number;
+  userId: string;
   name: string;
   descriptionRaw: string;
   descriptionPolished: string | null;
@@ -41,6 +48,7 @@ export interface TaskCreate {
   reportedHours: number;
   date: string;
   aiSuggestion?: PaddingSuggestion | null;
+  status?: TaskStatus;
 }
 
 export interface TaskUpdate {
@@ -52,4 +60,15 @@ export interface TaskUpdate {
   date?: string;
   aiSuggestion?: PaddingSuggestion | null;
   status?: TaskStatus;
+}
+
+export type Role = "admin" | "manager" | "user";
+
+export interface User {
+  id: string;
+  sub: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: string;
 }
